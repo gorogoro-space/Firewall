@@ -1,0 +1,23 @@
+message-kick: "You have been denied login by Firewall plugin."
+list-block-netset-file:
+- blocklist_de.ipset
+- blocklist_de_apache.ipset
+- blocklist_de_bots.ipset
+- blocklist_de_bruteforce.ipset
+- blocklist_de_ftp.ipset
+- blocklist_de_imap.ipset
+- blocklist_de_mail.ipset
+- blocklist_de_sip.ipset
+- blocklist_de_ssh.ipset
+- blocklist_de_strongips.ipset
+- blocklist_net_ua.ipset
+- firehol_abusers_1d.netset
+- firehol_abusers_30d.netset
+- firehol_anonymous.netset
+- firehol_level1.netset
+- firehol_level2.netset
+- firehol_level3.netset
+- firehol_proxies.netset
+- vpn-ipv4.txt
+list-unblock-ip-addr:
+list-unblock-uuid:
