@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.Inet4Address;
-import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
@@ -12,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -24,7 +24,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class Firewall extends JavaPlugin implements Listener{
   FileConfiguration config;
   List<String> blockNetsetIpv4List = new ArrayList<String>();
-  List<String> blockNetsetIpv6List = new ArrayList<String>();
   List<String> unblockIpAddrList = new ArrayList<String>();
   List<String> unblockUuidList = new ArrayList<String>();
 
@@ -89,53 +88,25 @@ public class Firewall extends JavaPlugin implements Listener{
   @EventHandler
   public void onAsyncPlayerPreLoginEvent(AsyncPlayerPreLoginEvent event){
     try {
-      String ipAddress = event.getAddress().getHostAddress().toString();
+      String addr = event.getAddress().getHostAddress().toString();
 
-      if(unblockIpAddrList.contains(ipAddress) == false
+      if(unblockIpAddrList.contains(addr) == false
         && unblockUuidList.contains(event.getUniqueId().toString()) == false) {
-        // TODO: write block logic
-        event.disallow(Result.KICK_OTHER, config.getString("message-kick"));
+        for(String cidr:blockNetsetIpv4List) {
+          if(cidrInIpv4(addr, cidr)) {
+            event.disallow(Result.KICK_OTHER, config.getString("message-kick"));
+            return;
+          }
+        }
       }
-
     } catch (Exception e) {
       logStackTrace(e);
     }
   }
 
-  private boolean isIpv4(String str) {
-    try {
-      if (InetAddress.getByName(str) instanceof Inet4Address) {
-        return true;
-      }
-    } catch (UnknownHostException e) {
-      return false;
-    }
-    return false;
-  }
-
-  private boolean isIpv6(String str) {
-    try {
-      if (InetAddress.getByName(str) instanceof Inet6Address) {
-        return true;
-      }
-    } catch (UnknownHostException e) {
-      return false;
-    }
-    return false;
-  }
-
-  private void logStackTrace(Exception e){
-    StringWriter sw = new StringWriter();
-    PrintWriter pw = new PrintWriter(sw);
-    e.printStackTrace(pw);
-    pw.flush();
-    getLogger().log(Level.WARNING, sw.toString());
-  }
-
   private void setBlockNetsetList(List<String> fileList) {
     try {
       blockNetsetIpv4List = null;
-      blockNetsetIpv6List = null;
       for(String fileName : fileList){
         File f = new File(getDataFolder() + File.separator + fileName);
         if(!f.exists()) {
@@ -146,13 +117,80 @@ public class Firewall extends JavaPlugin implements Listener{
         for(String line: lines) {
           if(isIpv4(line) && !blockNetsetIpv4List.contains(line)) {
             blockNetsetIpv4List.add(line);
-          } else if(isIpv6(line) && !blockNetsetIpv6List.contains(line)) {
-            blockNetsetIpv6List.add(line);
           }
         }
       }
     } catch (Exception e) {
       logStackTrace(e);
     }
+  }
+
+  private static boolean isIpv4(String str) {
+    try {
+      if (InetAddress.getByName(str) instanceof Inet4Address) {
+        return true;
+      }
+    } catch (UnknownHostException e) {
+      return false;
+    }
+    return false;
+  }
+
+  private boolean cidrInIpv4(String addr, String cidr) {
+    String[] range = cidrToIpv4(cidr);
+    if(ipv4ToLong(range[0]) <= ipv4ToLong(addr) && ipv4ToLong(addr) <= ipv4ToLong(range[1])) {
+      return true;
+    }
+    return false;
+  }
+
+  private String[] cidrToIpv4(String str) {
+    String[] arrIp = str.split("/");
+    Long start = ipv4ToLong(arrIp[0]);
+    int subNetMask = 32;
+    if (arrIp.length == 2) {
+      subNetMask = Integer.parseInt(arrIp[1]);
+    }
+    Long num = pow(2, 32 - subNetMask);
+    Long end = start + num - 1;
+    String[] ret = {arrIp[0], longToIpv4(end)};
+    return ret;
+  }
+
+  private static long ipv4ToLong(String str) {
+    String[] arrAddr = str.split("\\.");
+    Long num = 0L;
+    for (int i=0;i<arrAddr.length;i++) {
+        int power = 3-i;
+        num += ((Integer.parseInt(arrAddr[i]) % 256) * pow(256,power));
+    }
+    return num;
+  }
+
+  private static String longToIpv4(Long longIp){
+    return ((longIp >> 24) & 0xFF) + "." +
+      ((longIp >> 16) & 0xFF) + "." +
+      ((longIp >> 8) & 0xFF) + "." +
+      (longIp & 0xFF);
+  }
+
+  private static long pow(int number, int power) {
+    if(power == 0) {
+      return 1;
+    }
+    int result = number;
+    while(power > 1) {
+      result*=number;
+      power--;
+    }
+    return (long)result;
+  }
+
+  private static void logStackTrace(Exception e){
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    e.printStackTrace(pw);
+    pw.flush();
+    Bukkit.getLogger().log(Level.WARNING, sw.toString());
   }
 }
