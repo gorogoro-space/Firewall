@@ -76,7 +76,7 @@ public class Firewall extends JavaPlugin implements Listener{
       }
 
       config = getConfig();
-      setBlockNetsetList(config.getStringList("block-netset-file-list"));
+      loadBlockNetsetList();
       unblockIpAddrList = config.getStringList("unblock-ip-addr-list");
       unblockUuidList = config.getStringList("unblock-uuid-list");
 
@@ -104,10 +104,10 @@ public class Firewall extends JavaPlugin implements Listener{
     }
   }
 
-  private void setBlockNetsetList(List<String> fileList) {
+  private void loadBlockNetsetList() {
     try {
       blockNetsetIpv4List = null;
-      for(String fileName : fileList){
+      for(String fileName : config.getStringList("block-netset-file-list")){
         File f = new File(getDataFolder() + File.separator + fileName);
         if(!f.exists()) {
           continue;
@@ -136,7 +136,7 @@ public class Firewall extends JavaPlugin implements Listener{
     return false;
   }
 
-  private boolean cidrInIpv4(String addr, String cidr) {
+  private static boolean cidrInIpv4(String addr, String cidr) {
     String[] range = cidrToIpv4(cidr);
     if(ipv4ToLong(range[0]) <= ipv4ToLong(addr) && ipv4ToLong(addr) <= ipv4ToLong(range[1])) {
       return true;
@@ -144,7 +144,7 @@ public class Firewall extends JavaPlugin implements Listener{
     return false;
   }
 
-  private String[] cidrToIpv4(String str) {
+  private static String[] cidrToIpv4(String str) {
     String[] arrIp = str.split("/");
     Long start = ipv4ToLong(arrIp[0]);
     int subNetMask = 32;
@@ -161,17 +161,20 @@ public class Firewall extends JavaPlugin implements Listener{
     String[] arrAddr = str.split("\\.");
     Long num = 0L;
     for (int i=0;i<arrAddr.length;i++) {
-        int power = 3-i;
-        num += ((Integer.parseInt(arrAddr[i]) % 256) * pow(256,power));
+      int power = 3-i;
+      num += ((Integer.parseInt(arrAddr[i]) % 256) * pow(256,power));
     }
     return num;
   }
 
   private static String longToIpv4(Long longIp){
-    return ((longIp >> 24) & 0xFF) + "." +
-      ((longIp >> 16) & 0xFF) + "." +
-      ((longIp >> 8) & 0xFF) + "." +
-      (longIp & 0xFF);
+    return String.format(
+      "%d.%d.%d.%d",
+      ((longIp >> 24) & 0xFF),
+      ((longIp >> 16) & 0xFF),
+      ((longIp >> 8) & 0xFF),
+      (longIp & 0xFF)
+    );
   }
 
   private static long pow(int number, int power) {
