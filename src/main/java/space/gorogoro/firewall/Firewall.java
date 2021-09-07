@@ -24,6 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -48,7 +49,7 @@ public class Firewall extends JavaPlugin implements Listener{
       }
 
       if(args.length < 1) {
-        sender.sendMessage("The parameters are not enough.");
+        sendMsg(sender, "The parameters are not enough.");
         return true;
       }
 
@@ -56,20 +57,20 @@ public class Firewall extends JavaPlugin implements Listener{
       switch(args[0]) {
         case "add":
           if(args.length != 3) {
-            sender.sendMessage("Invalid parameter. (Number of parameters)");
+            sendMsg(sender, "Invalid parameter. (Number of parameters)");
             return true;
           }
 
           if(args[1].equals("uuid")) {
             ret = commandAddUUID(sender, commandInfo, label, args);
           } else {
-            sender.sendMessage("Invalid parameter. (Processing type)");
+            sendMsg(sender, "Invalid parameter. (Processing type)");
           }
           break;
 
         case "check":
           if(args.length != 3) {
-            sender.sendMessage("Invalid parameter. (Number of parameters)");
+            sendMsg(sender, "Invalid parameter. (Number of parameters)");
             return true;
           }
 
@@ -78,39 +79,39 @@ public class Firewall extends JavaPlugin implements Listener{
           } else if(args[1].equals("ipaddr")) {
             ret = commandCheckIpAddr(sender, commandInfo, label, args);
           } else {
-            sender.sendMessage("Invalid parameter. (Processing type)");
+            sendMsg(sender, "Invalid parameter. (Processing type)");
           }
           break;
 
         case "delete":
           if(args.length != 3) {
-            sender.sendMessage("Invalid parameter. (Number of parameters)");
+            sendMsg(sender, "Invalid parameter. (Number of parameters)");
             return true;
           }
 
           if(args[1].equals("uuid")) {
             ret = commandDeleteUUID(sender, commandInfo, label, args);
           } else {
-            sender.sendMessage("Invalid parameter. (Processing type)");
+            sendMsg(sender, "Invalid parameter. (Processing type)");
           }
           break;
 
         case "long":
           if(args.length != 3) {
-            sender.sendMessage("Invalid parameter. (Number of parameters)");
+            sendMsg(sender, "Invalid parameter. (Number of parameters)");
             return true;
           }
 
           if(args[1].equals("cidr")) {
             ret = commandLongCIDR(sender, commandInfo, label, args);
           } else {
-            sender.sendMessage("Invalid parameter. (Processing type)");
+            sendMsg(sender, "Invalid parameter. (Processing type)");
           }
           break;
 
        case "reload":
           if(args.length != 1) {
-            sender.sendMessage("Invalid parameter. (Number of parameters)");
+            sendMsg(sender, "Invalid parameter. (Number of parameters)");
             return true;
           }
           ret = commandReload(sender, commandInfo, label, args);
@@ -197,26 +198,26 @@ public class Firewall extends JavaPlugin implements Listener{
   private boolean commandReload(CommandSender sender, Command commandInfo, String label, String[] args) {
     onDisable();
     onEnable();
-    sender.sendMessage("Reload complete.");
+    sendMsg(sender, "Reload complete.");
     return true;
   }
 
   private boolean commandAddUUID(CommandSender sender, Command commandInfo, String label, String[] args) {
     String uuid = args[2].toLowerCase();
     if(!isUUIDFormat(uuid)) {
-      sender.sendMessage("Invalid UUID format. The format of UUID should be specified by xxxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxx.");
+      sendMsg(sender, "Invalid UUID format. The format of UUID should be specified by xxxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxx.");
       return true;
     }
 
     if(unblockUUIDList.contains(uuid)) {
-      sender.sendMessage(uuid + " is already registered.");
+      sendMsg(sender, uuid + " is already registered.");
       return true;
     }
 
     String path = "list-unblock-uuid";
     List<String> list = config.getStringList(path);
     if(list.contains(uuid)) {
-      sender.sendMessage(uuid + " is already registered. Please execute command '/firewall reload'.");
+      sendMsg(sender, uuid + " is already registered. Please execute command '/firewall reload'.");
       return true;
     }
 
@@ -224,43 +225,43 @@ public class Firewall extends JavaPlugin implements Listener{
     Collections.sort(list);
     config.set(path, list);
     saveConfig();
-    sender.sendMessage(uuid + " has been saved.");
+    sendMsg(sender, uuid + " has been saved.");
     return true;
   }
 
   private boolean commandCheckIpAddr(CommandSender sender, Command commandInfo, String label, String[] args) {
     if(!isIpv4(args[2])) {
-      sender.sendMessage("Invalid IP address format. (Ipv4)");
+      sendMsg(sender, "Invalid IP address format. (Ipv4)");
       return true;
     }
 
     Long addr = ipv4ToLong(args[2]);
     for(ArrayList<Long> range:blockNetsetIpv4List) {
       if(range.get(0) <= addr && addr <= range.get(1)) {
-        sender.sendMessage(args[2] + " is blocked.");
+        sendMsg(sender, args[2] + " is blocked.");
         return true;
       }
     }
-    sender.sendMessage(args[2] + " is not blocked.");
+    sendMsg(sender, args[2] + " is not blocked.");
     return true;
   }
 
   private boolean commandDeleteUUID(CommandSender sender, Command commandInfo, String label, String[] args) {
     String uuid = args[2].toLowerCase();
     if(!isUUIDFormat(uuid)) {
-      sender.sendMessage("Invalid UUID format. The format of UUID should be specified by xxxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxx.");
+      sendMsg(sender, "Invalid UUID format. The format of UUID should be specified by xxxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxx.");
       return true;
     }
 
     if(!unblockUUIDList.contains(uuid)) {
-      sender.sendMessage(uuid + " is not registered.");
+      sendMsg(sender, uuid + " is not registered.");
       return true;
     }
 
     String path = "list-unblock-uuid";
     List<String> list = config.getStringList(path);
     if(!list.contains(uuid)) {
-      sender.sendMessage(uuid + " is not registered. Please execute command '/firewall reload'.");
+      sendMsg(sender, uuid + " is not registered. Please execute command '/firewall reload'.");
       return true;
     }
 
@@ -268,33 +269,33 @@ public class Firewall extends JavaPlugin implements Listener{
     Collections.sort(list);
     config.set(path, list);
     saveConfig();
-    sender.sendMessage(uuid + " has been deleted.");
+    sendMsg(sender, uuid + " has been deleted.");
     return true;
   }
 
   private boolean commandCheckUUID(CommandSender sender, Command commandInfo, String label, String[] args) {
     String uuid = args[2].toLowerCase();
     if(!isUUIDFormat(uuid)) {
-      sender.sendMessage("Invalid UUID format. The format of UUID should be specified by xxxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxx.");
+      sendMsg(sender, "Invalid UUID format. The format of UUID should be specified by xxxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxx.");
       return true;
     }
 
     if(unblockUUIDList.contains(uuid)) {
-      sender.sendMessage(uuid + " is unblocked.");
+      sendMsg(sender, uuid + " is unblocked.");
     } else {
-      sender.sendMessage(uuid + " is not unblocked.");
+      sendMsg(sender, uuid + " is not unblocked.");
     }
     return true;
   }
 
   private boolean commandLongCIDR(CommandSender sender, Command commandInfo, String label, String[] args) {
     if(!isIpv4CIDR(args[2])) {
-      sender.sendMessage("Invalid CIDR format. (Ipv4)");
+      sendMsg(sender, "Invalid CIDR format. (Ipv4)");
       return true;
     }
 
     String[] range = cidrToIpv4(args[2]);
-    sender.sendMessage(String.format("The Long value is 'start:%d end:%d'.", ipv4ToLong(range[0]), ipv4ToLong(range[1])));
+    sendMsg(sender, String.format("The Long value is 'start:%d end:%d'.", ipv4ToLong(range[0]), ipv4ToLong(range[1])));
     return true;
   }
 
@@ -323,7 +324,7 @@ public class Firewall extends JavaPlugin implements Listener{
         prepStmt.put("insert",con.prepareStatement("INSERT INTO block_list(cidr, start, end) VALUES (?, ?, ?);"));
         rows = 0;
         for(String line: lines) {
-          if(!isIpv4CIDR(line)) {
+          if(!isIpv4(line) && !isIpv4CIDR(line)) {
             continue;
           }
 
@@ -400,8 +401,11 @@ public class Firewall extends JavaPlugin implements Listener{
       return false;
     }
     String[] arrIp = str.split("/");
+    if (arrIp.length != 2) {
+      return false;
+    }
     if (!isIpv4(arrIp[0])) {
-        return false;
+      return false;
     }
     int mask = Integer.parseInt(arrIp[1]);
     if (mask < 0 || mask > 32) {
@@ -461,5 +465,9 @@ public class Firewall extends JavaPlugin implements Listener{
     e.printStackTrace(pw);
     pw.flush();
     Bukkit.getLogger().log(Level.WARNING, sw.toString());
+  }
+
+  private static void sendMsg(CommandSender sender, String msg){
+    sender.sendMessage(ChatColor.GRAY + msg + ChatColor.RESET);
   }
 }
