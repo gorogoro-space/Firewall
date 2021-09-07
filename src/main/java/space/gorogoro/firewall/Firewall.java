@@ -29,6 +29,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result;
@@ -39,6 +40,23 @@ public class Firewall extends JavaPlugin implements Listener{
   private FileConfiguration config;
   private ArrayList<ArrayList<Long>> blockNetsetIpv4List = new ArrayList<ArrayList<Long>>();
   private List<String> unblockUUIDList = new ArrayList<String>();
+
+  @EventHandler(priority = EventPriority.HIGHEST)
+  public void onAsyncPlayerPreLoginEvent(AsyncPlayerPreLoginEvent event){
+    try {
+      Long addr = ipv4ToLong(event.getAddress().getHostAddress().toString());
+
+      if(unblockUUIDList.contains(event.getUniqueId().toString()) == false) {
+        for(ArrayList<Long> range:blockNetsetIpv4List) {
+          if(range.get(0) <= addr && addr <= range.get(1)) {
+            event.disallow(Result.KICK_OTHER, config.getString("message-kick"));
+          }
+        }
+      }
+    } catch (Exception e) {
+      logStackTrace(e);
+    }
+  }
 
   @Override
   public boolean onCommand( CommandSender sender, Command commandInfo, String label, String[] args) {
@@ -168,40 +186,6 @@ public class Firewall extends JavaPlugin implements Listener{
     }
   }
 
-  @EventHandler
-  public void onAsyncPlayerPreLoginEvent(AsyncPlayerPreLoginEvent event){
-    try {
-      Long addr = ipv4ToLong(event.getAddress().getHostAddress().toString());
-
-      if(unblockUUIDList.contains(event.getUniqueId().toString()) == false) {
-        for(ArrayList<Long> range:blockNetsetIpv4List) {
-          if(range.get(0) <= addr && addr <= range.get(1)) {
-            event.disallow(Result.KICK_OTHER, config.getString("message-kick"));
-          }
-        }
-      }
-    } catch (Exception e) {
-      logStackTrace(e);
-    }
-  }
-
-  private boolean isUUIDFormat(String str) {
-    if(str.length() != 36) {
-      return false;
-    }
-
-    Pattern pattern = Pattern.compile("^[0-9a-f]{8}\\-[0-9a-f]{4}\\-[0-9a-f]{4}\\-[0-9a-f]{4}\\-[0-9a-f]{12}$");
-    Matcher matcher = pattern.matcher(str);
-    return matcher.matches();
-  }
-
-  private boolean commandReload(CommandSender sender, Command commandInfo, String label, String[] args) {
-    onDisable();
-    onEnable();
-    sendMsg(sender, "Reload complete.");
-    return true;
-  }
-
   private boolean commandAddUUID(CommandSender sender, Command commandInfo, String label, String[] args) {
     String uuid = args[2].toLowerCase();
     if(!isUUIDFormat(uuid)) {
@@ -246,6 +230,21 @@ public class Firewall extends JavaPlugin implements Listener{
     return true;
   }
 
+  private boolean commandCheckUUID(CommandSender sender, Command commandInfo, String label, String[] args) {
+    String uuid = args[2].toLowerCase();
+    if(!isUUIDFormat(uuid)) {
+      sendMsg(sender, "Invalid UUID format. The format of UUID should be specified by xxxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxx.");
+      return true;
+    }
+
+    if(unblockUUIDList.contains(uuid)) {
+      sendMsg(sender, uuid + " is unblocked.");
+    } else {
+      sendMsg(sender, uuid + " is not unblocked.");
+    }
+    return true;
+  }
+
   private boolean commandDeleteUUID(CommandSender sender, Command commandInfo, String label, String[] args) {
     String uuid = args[2].toLowerCase();
     if(!isUUIDFormat(uuid)) {
@@ -273,21 +272,6 @@ public class Firewall extends JavaPlugin implements Listener{
     return true;
   }
 
-  private boolean commandCheckUUID(CommandSender sender, Command commandInfo, String label, String[] args) {
-    String uuid = args[2].toLowerCase();
-    if(!isUUIDFormat(uuid)) {
-      sendMsg(sender, "Invalid UUID format. The format of UUID should be specified by xxxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxx.");
-      return true;
-    }
-
-    if(unblockUUIDList.contains(uuid)) {
-      sendMsg(sender, uuid + " is unblocked.");
-    } else {
-      sendMsg(sender, uuid + " is not unblocked.");
-    }
-    return true;
-  }
-
   private boolean commandLongCIDR(CommandSender sender, Command commandInfo, String label, String[] args) {
     if(!isIpv4CIDR(args[2])) {
       sendMsg(sender, "Invalid CIDR format. (Ipv4)");
@@ -297,6 +281,29 @@ public class Firewall extends JavaPlugin implements Listener{
     String[] range = cidrToIpv4(args[2]);
     sendMsg(sender, String.format("The Long value is 'start:%d end:%d'.", ipv4ToLong(range[0]), ipv4ToLong(range[1])));
     return true;
+  }
+
+  private boolean commandReload(CommandSender sender, Command commandInfo, String label, String[] args) {
+    onDisable();
+    onEnable();
+    sendMsg(sender, "Reload complete.");
+    return true;
+  }
+
+  private void loadBlockNetsetList() {
+    try {
+      blockNetsetIpv4List = new ArrayList<ArrayList<Long>>();
+      HashMap<String,PreparedStatement> prepStmt = new HashMap<>();
+      prepStmt.put("select",con.prepareStatement("SELECT start, end FROM block_list;"));
+      ResultSet rs;
+      rs = prepStmt.get("select").executeQuery();
+      while(rs.next()){
+        blockNetsetIpv4List.add(new ArrayList<Long>(Arrays.asList(rs.getLong(1), rs.getLong(2))));
+      }
+      rs.close();
+    } catch (Exception e) {
+      logStackTrace(e);
+    }
   }
 
   private void storeBlockNetsetList(Connection con) throws SQLException {
@@ -359,22 +366,6 @@ public class Firewall extends JavaPlugin implements Listener{
     }
   }
 
-  private void loadBlockNetsetList() {
-    try {
-      blockNetsetIpv4List = new ArrayList<ArrayList<Long>>();
-      HashMap<String,PreparedStatement> prepStmt = new HashMap<>();
-      prepStmt.put("select",con.prepareStatement("SELECT start, end FROM block_list;"));
-      ResultSet rs;
-      rs = prepStmt.get("select").executeQuery();
-      while(rs.next()){
-        blockNetsetIpv4List.add(new ArrayList<Long>(Arrays.asList(rs.getLong(1), rs.getLong(2))));
-      }
-      rs.close();
-    } catch (Exception e) {
-      logStackTrace(e);
-    }
-  }
-
   private static boolean isIpv4(String str) {
     try {
       if(str.length() < 7 || str.length() > 15) {
@@ -412,6 +403,16 @@ public class Firewall extends JavaPlugin implements Listener{
       return false;
     }
     return true;
+  }
+
+  private static boolean isUUIDFormat(String str) {
+    if(str.length() != 36) {
+      return false;
+    }
+
+    Pattern pattern = Pattern.compile("^[0-9a-f]{8}\\-[0-9a-f]{4}\\-[0-9a-f]{4}\\-[0-9a-f]{4}\\-[0-9a-f]{12}$");
+    Matcher matcher = pattern.matcher(str);
+    return matcher.matches();
   }
 
   private static String[] cidrToIpv4(String str) {
