@@ -388,7 +388,7 @@ public class Firewall extends JavaPlugin implements Listener{
   }
 
   private static boolean isIpv4CIDR(String str) {
-    if(str.length() < 7 || str.length() > 18) {
+    if(str.length() < 9 || str.length() > 18) {
       return false;
     }
     String[] arrIp = str.split("/");
