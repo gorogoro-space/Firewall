@@ -468,6 +468,6 @@ public class Firewall extends JavaPlugin implements Listener{
   }
 
   private static void sendMsg(CommandSender sender, String msg){
-    sender.sendMessage(ChatColor.GRAY + msg + ChatColor.RESET);
+    sender.sendMessage("[Firewall] " + ChatColor.GRAY + msg + ChatColor.RESET);
   }
 }
