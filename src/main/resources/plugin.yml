@@ -6,6 +6,31 @@ author: kubotan
 main: space.gorogoro.firewall.Firewall
 
 commands:
+  firewall:
+    description: Firewall command.
+    usage: |
+      Use /help firewall [subcommand] for more information
+      /<command> reload - Reload config.
+      /<command> check ipaddr <ip address> - Check block ip address.
+      /<command> check uuid <UUID> - Check unblock UUID.
+      /<command> add uuid <UUID> - Add unblock UUID.
+      /<command> delete uuid <UUID> - Delete unblock UUID.
+      /<command> long cidr <CIDR> - Convert a CIDR to a value of type Long.
   firewall reload:
     description: Reload config.
     usage: /<command> reload
+  firewall check ipaddr:
+    description: Check block ip address.
+    usage: /<command> check ipaddr <ip address>
+  firewall check uuid:
+    description: Check unblock UUID.
+    usage: /<command> check uuid <UUID>
+  firewall add uuid:
+    description: Add unblock UUID.
+    usage: /<command> add uuid <UUID>
+  firewall delete uuid:
+    description: Delete unblock UUID.
+    usage: /<command> delete uuid <UUID>
+  firewall long cidr :
+    description: Convert cidr to Long type.
+    usage: /<command> long cidr <CIDR>
