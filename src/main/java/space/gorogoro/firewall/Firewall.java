@@ -41,6 +41,37 @@ public class Firewall extends JavaPlugin implements Listener{
   private ArrayList<ArrayList<Long>> blockNetsetIpv4List = new ArrayList<ArrayList<Long>>();
   private List<String> unblockUUIDList = new ArrayList<String>();
 
+  @Override
+  public void onEnable(){
+    try{
+      getLogger().info("The Plugin Has Been Enabled!");
+      getServer().getPluginManager().registerEvents(this, this);
+
+      File configFile = new File(getDataFolder() + File.separator + "config.yml");
+      if(!configFile.exists()){
+        saveDefaultConfig();
+      }
+
+      Class.forName("org.sqlite.JDBC");
+      con = DriverManager.getConnection("jdbc:sqlite:" + getDataFolder() + File.separator + "block.db");
+      con.setAutoCommit(false);
+      Statement stmt = con.createStatement();
+      stmt.setQueryTimeout(30);
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS block_list (id INTEGER PRIMARY KEY AUTOINCREMENT, cidr STRING NOT NULL, start LONG NOT NULL, end LONG NOT NULL);");
+      stmt.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS block_list_cidr_uindex ON block_list (cidr, start, end);");
+      stmt.executeUpdate("CREATE INDEX IF NOT EXISTS block_list_start_end_index ON block_list (start, end);");
+      stmt.close();
+
+      config = getConfig();
+      storeBlockNetsetList(con);
+      loadBlockNetsetList();
+      unblockUUIDList = config.getStringList("list-unblock-uuid");
+
+    } catch (Exception e) {
+      logStackTrace(e);
+    }
+  }
+
   @EventHandler(priority = EventPriority.HIGHEST)
   public void onAsyncPlayerPreLoginEvent(AsyncPlayerPreLoginEvent event){
     try {
@@ -153,37 +184,6 @@ public class Firewall extends JavaPlugin implements Listener{
       logStackTrace(e);
     }
     getLogger().info("The Plugin Has Been Disabled!");
-  }
-
-  @Override
-  public void onEnable(){
-    try{
-      getLogger().info("The Plugin Has Been Enabled!");
-      getServer().getPluginManager().registerEvents(this, this);
-
-      File configFile = new File(getDataFolder() + File.separator + "config.yml");
-      if(!configFile.exists()){
-        saveDefaultConfig();
-      }
-
-      Class.forName("org.sqlite.JDBC");
-      con = DriverManager.getConnection("jdbc:sqlite:" + getDataFolder() + File.separator + "block.db");
-      con.setAutoCommit(false);
-      Statement stmt = con.createStatement();
-      stmt.setQueryTimeout(30);
-      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS block_list (id INTEGER PRIMARY KEY AUTOINCREMENT, cidr STRING NOT NULL, start LONG NOT NULL, end LONG NOT NULL);");
-      stmt.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS block_list_cidr_uindex ON block_list (cidr, start, end);");
-      stmt.executeUpdate("CREATE INDEX IF NOT EXISTS block_list_start_end_index ON block_list (start, end);");
-      stmt.close();
-
-      config = getConfig();
-      storeBlockNetsetList(con);
-      loadBlockNetsetList();
-      unblockUUIDList = config.getStringList("list-unblock-uuid");
-
-    } catch (Exception e) {
-      logStackTrace(e);
-    }
   }
 
   private boolean commandAddUUID(CommandSender sender, Command commandInfo, String label, String[] args) {
