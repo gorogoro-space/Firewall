@@ -68,6 +68,7 @@ public class Firewall extends JavaPlugin implements Listener{
       unblockUUIDList = config.getStringList("list-unblock-uuid");
 
     } catch (Exception e) {
+      closeDb(con);
       logStackTrace(e);
     }
   }
@@ -178,12 +179,18 @@ public class Firewall extends JavaPlugin implements Listener{
 
   @Override
   public void onDisable(){
+    closeDb(con);
+    getLogger().info("The Plugin Has Been Disabled!");
+  }
+
+  private void closeDb(Connection con) {
     try {
-      con.close();
+      if(con != null) {
+        con.close();
+      }
     } catch (SQLException e) {
       logStackTrace(e);
     }
-    getLogger().info("The Plugin Has Been Disabled!");
   }
 
   private boolean commandAddUUID(CommandSender sender, Command commandInfo, String label, String[] args) {
