@@ -167,6 +167,27 @@ public class Firewall extends JavaPlugin implements Listener{
           ret = commandReload(sender, commandInfo, label, args);
           break;
 
+       case "enable":
+         if(args.length != 1) {
+           sendMsg(sender, "Invalid parameter. (Number of parameters)");
+           return true;
+         }
+         onDisable();
+         onEnable();
+         sendMsg(sender, "Enable firewall.");
+         ret = true;
+         break;
+
+       case "disable":
+         if(args.length != 1) {
+           sendMsg(sender, "Invalid parameter. (Number of parameters)");
+           return true;
+         }
+         onDisable();
+         sendMsg(sender, "Disable firewall.");
+         ret = true;
+         break;
+
         default:
           break;
       }
@@ -245,7 +266,7 @@ public class Firewall extends JavaPlugin implements Listener{
     }
 
     if(unblockUUIDList.contains(uuid)) {
-      sendMsg(sender, uuid + " is unblocked.");
+      sendMsg(sender, uuid + " is unblocked. (Already registered.)");
     } else {
       sendMsg(sender, uuid + " is not unblocked.");
     }

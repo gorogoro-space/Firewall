@@ -19,6 +19,12 @@ commands:
   firewall reload:
     description: Reload config.
     usage: /<command> reload
+  firewall enable:
+    description: Enable firewall.
+    usage: /<command> enable
+  firewall disable:
+    description: Disable firewall.
+    usage: /<command> disable
   firewall check ipaddr:
     description: Check block ip address.
     usage: /<command> check ipaddr <ip address>
