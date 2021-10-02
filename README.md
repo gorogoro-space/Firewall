@@ -12,6 +12,8 @@ Deny connections from VPNs, proxies, and harmful networks.
 # Command
 ```
 /firewall reload - Reload config.
+/firewall enable - Enable firewall.
+/firewall disable - Disable firewall.
 /firewall check ipaddr <ip address> - Check block ip address.
 /firewall check uuid <UUID> - Check unblock UUID.
 /firewall add uuid <UUID> - Add unblock UUID.
