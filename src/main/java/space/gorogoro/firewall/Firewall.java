@@ -60,6 +60,7 @@ public class Firewall extends JavaPlugin implements Listener{
       stmt.executeUpdate("CREATE TABLE IF NOT EXISTS block_list (id INTEGER PRIMARY KEY AUTOINCREMENT, cidr STRING NOT NULL, start LONG NOT NULL, end LONG NOT NULL);");
       stmt.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS block_list_cidr_uindex ON block_list (cidr, start, end);");
       stmt.executeUpdate("CREATE INDEX IF NOT EXISTS block_list_start_end_index ON block_list (start, end);");
+      con.commit();
       stmt.close();
 
       config = getConfig();
